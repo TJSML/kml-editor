@@ -1,2 +1,33 @@
-# kml-editor
-A tool for editing .kml files that automatically removes the &lt;Folder> and &lt;MultiGeometry> tags, for uploading into DJI Pilot 2.
+# 🗺️ KML Cleaner
+
+เครื่องมือสำหรับแก้ไขไฟล์ .kml โดยตัดแท็ก `<Folder>` และ `<MultiGeometry>` ออกอัตโนมัติ
+
+## ✨ ฟีเจอร์
+- เลือกหลายไฟล์ .kml ได้ในครั้งเดียว (รองรับ Drag & Drop)
+- แปลงทีละไฟล์หรือทั้งหมดพร้อมกัน
+- ดาวน์โหลดไฟล์ที่แปลงแล้วชื่อเดิม
+- Preview บนแผนที่ทีละไฟล์ (Leaflet.js)
+- UI ภาษาไทย ฟอนต์ Kanit
+
+## 🚀 ใช้งานออนไลน์ผ่าน GitHub Pages
+
+1. Fork หรือ Upload ไฟล์ `index.html` ขึ้น GitHub repository
+2. ไปที่ **Settings → Pages**
+3. เลือก Branch: `main` / Folder: `/ (root)`
+4. บันทึก — รอสักครู่แล้วเข้าใช้งานผ่าน URL ที่ได้
+
+## 📁 โครงสร้างไฟล์
+```
+/
+└── index.html    ← ไฟล์เดียว ทำงานได้เลย
+```
+
+## 🛠️ วิธีใช้งาน
+1. เปิดไฟล์ `index.html` ผ่าน browser โดยตรง **หรือ** ผ่าน GitHub Pages
+2. เลือกหรือลากไฟล์ .kml มาวาง
+3. กดปุ่ม **แปลงทั้งหมด** หรือกด ⚡ ที่ไฟล์ใดก็ได้
+4. ไฟล์จะดาวน์โหลดอัตโนมัติ (ชื่อไฟล์เดิม)
+5. คลิกชื่อไฟล์เพื่อดู Preview บนแผนที่
+
+---
+Version 1.0

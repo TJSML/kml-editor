@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KML Editor</title>
+  <link rel="icon" href="kml.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+   /* .leaflet-control-attribution { display: none !important; } */
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #21262d;
+      --surface3: #30363d;
+      --border: #30363d;
+      --accent: #00d084;
+      --accent2: #0ea5e9;
+      --accent-glow: rgba(0, 208, 132, 0.15);
+      --text: #e6edf3;
+      --text-muted: #7d8590;
+      --text-dim: #484f58;
+      --danger: #f85149;
+      --warning: #d29922;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Kanit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      height: 58px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+
+    .logo-text {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .logo-text span { color: var(--accent); }
+
+    .credit {
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--text-muted);
+      text-align: right;
+      line-height: 1.5;
+    }
+
+    .credit strong {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .version-badge {
+      display: inline-block;
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px 8px;
+      font-size: 10px;
+      color: var(--accent);
+      font-weight: 500;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      font-family: 'Kanit', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0d1117;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover { background: #00e892; box-shadow: 0 0 16px var(--accent-glow); }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover { background: var(--surface3); border-color: var(--accent); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border-color: transparent;
+    }
+    .btn-ghost:hover { color: var(--text); background: var(--surface2); }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border-color: var(--border);
+    }
+    .btn-danger:hover { background: rgba(248,81,73,0.1); border-color: var(--danger); }
+
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .divider { width: 1px; height: 28px; background: var(--border); margin: 0 4px; }
+
+    .stats-chip {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .stats-chip span { color: var(--accent); font-weight: 600; }
+
+    /* ── MAIN LAYOUT ── */
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── LEFT PANEL ── */
+    .panel-left {
+      width: 340px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .panel-label {
+      padding: 12px 18px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-label .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+
+    /* Drop Zone */
+    .drop-zone {
+      margin: 14px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--surface2);
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    .drop-zone .drop-icon { font-size: 28px; margin-bottom: 8px; }
+
+    .drop-zone p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .drop-zone p strong { color: var(--accent); cursor: pointer; }
+
+    /* File List */
+    .file-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .file-list::-webkit-scrollbar { width: 4px; }
+    .file-list::-webkit-scrollbar-track { background: transparent; }
+    .file-list::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 4px;
+      animation: slideIn 0.2s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .file-item:hover { background: var(--surface2); border-color: var(--border); }
+
+    .file-item.active {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+    }
+
+    .file-item.done .file-status { color: var(--accent); }
+
+    .file-icon { font-size: 20px; flex-shrink: 0; }
+
+    .file-info { flex: 1; min-width: 0; }
+
+    .file-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .file-status { font-size: 16px; flex-shrink: 0; }
+
+    .file-actions { display: flex; gap: 4px; }
+
+    .icon-btn {
+      width: 26px; height: 26px;
+      border-radius: 5px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+
+    .icon-btn:hover { background: var(--surface3); color: var(--text); }
+
+    /* Empty State */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      text-align: center;
+      color: var(--text-dim);
+    }
+
+    .empty-state .empty-icon { font-size: 40px; margin-bottom: 10px; opacity: 0.5; }
+    .empty-state p { font-size: 13px; line-height: 1.6; }
+
+    /* ── RIGHT PANEL ── */
+    .panel-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .map-header {
+      padding: 12px 18px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+    }
+
+    .map-file-name {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 500;
+      font-style: normal;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    #map {
+      flex: 1;
+      background: #0a0e14;
+    }
+
+    .map-placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      gap: 14px;
+      background: var(--bg);
+    }
+
+    .map-placeholder .ph-icon { font-size: 54px; opacity: 0.2; }
+
+    .map-placeholder p {
+      font-size: 14px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .map-placeholder p small {
+      display: block;
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* ── TOAST ── */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 9999;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 400;
+      min-width: 240px;
+      max-width: 360px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      animation: toastIn 0.25s ease;
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .toast.success { border-color: var(--accent); }
+    .toast.error { border-color: var(--danger); }
+    .toast.info { border-color: var(--accent2); }
+
+    /* ── PROGRESS BAR ── */
+    .progress-bar-wrap {
+      height: 3px;
+      background: var(--surface3);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+
+    /* ── DETAIL BADGE ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      background: var(--surface3);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .badge.green { background: rgba(0,208,132,0.1); color: var(--accent); border-color: rgba(0,208,132,0.3); }
+    .badge.blue  { background: rgba(14,165,233,0.1); color: var(--accent2); border-color: rgba(14,165,233,0.3); }
+    .badge.red   { background: rgba(248,81,73,0.1); color: var(--danger); border-color: rgba(248,81,73,0.3); }
+
+    #file-input { display: none; }
+
+    /* ── OUTPUT FOLDER SELECTOR ── */
+    .out-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--surface2);
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .out-row label { color: var(--text-muted); font-weight: 500; white-space: nowrap; }
+
+    .out-path {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 5px 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'Kanit', sans-serif;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .scroll-hint {
+      padding: 6px 14px;
+      font-size: 11px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+  <img src="kml.png" style="width:20px;height:20px;object-fit:contain;">
+</div>
+    <div class="logo-text">KML<span>Editor</span></div>
+  </div>
+  <div class="credit">
+    <strong>CREATED BY SATJA</strong>
+    <span class="version-badge">v 1.0</span>
+    <!--<br>ตัดแท็ก &lt;Folder&gt; &amp; &lt;MultiGeometry&gt; อัตโนมัติ-->
+  </div>
+</header>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+    📂 เลือกไฟล์ .kml
+  </button>
+  <input type="file" id="file-input" accept=".kml" multiple>
+
+  <div class="divider"></div>
+
+  <button class="btn btn-secondary" id="btn-convert-all" onclick="convertAll()" disabled>
+    ⚡ แปลงทั้งหมด
+  </button>
+  <button class="btn btn-danger" id="btn-clear" onclick="clearAll()" disabled>
+    🗑️ ล้างทั้งหมด
+  </button>
+
+  <div class="stats-chip" id="stats-chip" style="display:none">
+    ไฟล์ทั้งหมด: <span id="stat-total">0</span> &nbsp;|&nbsp; แปลงแล้ว: <span id="stat-done">0</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: FILE LIST -->
+  <div class="panel-left">
+    <div class="panel-label">
+      <div class="dot"></div>
+      รายการไฟล์
+    </div>
+
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="drop-zone"
+         ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)"
+         onclick="document.getElementById('file-input').click()">
+      <div class="drop-icon">📁</div>
+      <p>ลากไฟล์ .kml มาวางที่นี่<br><strong>หรือคลิกเพื่อเลือกไฟล์</strong></p>
+    </div>
+
+    <!-- File List -->
+    <div class="file-list" id="file-list">
+      <div class="empty-state" id="empty-state">
+        <div class="empty-icon">📄</div>
+        <p>ยังไม่มีไฟล์ที่เลือก<br>กรุณาเลือกหรือลากไฟล์ .kml เพื่อเริ่มต้น</p>
+      </div>
+    </div>
+
+    <!-- Output save note -->
+  <div class="out-row">
+    <label>💾 บันทึกไปที่:</label>
+    <div class="out-path" id="out-path">ดาวน์โหลดอัตโนมัติ (ค่าเริ่มต้น)</div>
+    <button class="btn btn-secondary" onclick="selectOutputFolder()" style="padding:4px 10px;font-size:12px;">📁 เลือก</button>
+  </div>
+  </div>
+
+  <!-- RIGHT: MAP PREVIEW -->
+  <div class="panel-right">
+    <div class="map-header">
+      <span>🗺️ &nbsp;Map Preview</span>
+      <span class="map-file-name" id="map-file-label">— เลือกไฟล์เพื่อดูแผนที่ —</span>
+    </div>
+    <div class="map-placeholder" id="map-placeholder">
+      <div class="ph-icon">🗺️</div>
+      <p>คลิกที่ชื่อไฟล์ด้านซ้ายเพื่อดู Preview บนแผนที่<br>
+        <small>แสดงทีละไฟล์ เพื่อประสิทธิภาพสูงสุด</small></p>
+    </div>
+    <div id="map" style="display:none;"></div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<script>
+/* ════════════════════════════════════════
+   Output Download
+════════════════════════════════════════ */
+let outputDirHandle = null;
+async function selectOutputFolder() {
+  try {
+    outputDirHandle = await window.showDirectoryPicker();
+    document.getElementById('out-path').textContent = outputDirHandle.name;
+    showToast('📁 เลือกโฟลเดอร์: ' + outputDirHandle.name, 'success');
+  } catch (e) {
+    if (e.name !== 'AbortError') showToast('❌ ไม่สามารถเลือกโฟลเดอร์ได้', 'error');
+  }
+}
+/* ════════════════════════════════════════
+   STATE
+════════════════════════════════════════ */
+let files = [];          // { file, name, size, status: 'pending'|'done'|'error', kmlText }
+let leafletMap = null;
+let activeLayerGroup = null;
+let activeFileIdx = null;
+
+/* ════════════════════════════════════════
+   FILE INPUT
+════════════════════════════════════════ */
+document.getElementById('file-input').addEventListener('change', (e) => {
+  addFiles(Array.from(e.target.files));
+  e.target.value = '';
+});
+
+function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('dragover'); }
+function onDragLeave(e) { document.getElementById('drop-zone').classList.remove('dragover'); }
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('dragover');
+  const dropped = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.kml'));
+  if (!dropped.length) { showToast('⚠️ กรุณาเลือกเฉพาะไฟล์ .kml', 'error'); return; }
+  addFiles(dropped);
+}
+
+async function addFiles(newFiles) {
+  for (const f of newFiles) {
+    if (!f.name.endsWith('.kml')) continue;
+    if (files.find(x => x.name === f.name && x.size === f.size)) continue;
+    const text = await f.text();
+    files.push({ file: f, name: f.name, size: f.size, status: 'pending', kmlText: text });
+  }
+  renderFileList();
+  updateStats();
+}
+
+/* ════════════════════════════════════════
+   RENDER FILE LIST
+════════════════════════════════════════ */
+function renderFileList() {
+  const list = document.getElementById('file-list');
+  const empty = document.getElementById('empty-state');
+  const btnConvert = document.getElementById('btn-convert-all');
+  const btnClear = document.getElementById('btn-clear');
+
+  if (!files.length) {
+    list.innerHTML = '';
+    list.appendChild(empty);
+    btnConvert.disabled = true;
+    btnClear.disabled = true;
+    document.getElementById('stats-chip').style.display = 'none';
+    return;
+  }
+
+  if (list.contains(empty)) list.removeChild(empty);
+  btnConvert.disabled = false;
+  btnClear.disabled = false;
+  document.getElementById('stats-chip').style.display = '';
+
+  list.innerHTML = '';
+  files.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = `file-item${activeFileIdx === i ? ' active' : ''}${f.status === 'done' ? ' done' : ''}`;
+    item.innerHTML = `
+      <div class="file-icon">📄</div>
+      <div class="file-info" onclick="previewFile(${i})">
+        <div class="file-name">${f.name}</div>
+        <div class="file-meta">${formatSize(f.size)} &nbsp;·&nbsp;
+          ${f.status === 'pending' ? '<span class="badge">รอแปลง</span>' :
+            f.status === 'done' ? '<span class="badge green">✓ แปลงแล้ว</span>' :
+            '<span class="badge red">❌ ผิดพลาด</span>'}
+        </div>
+      </div>
+      <div class="file-status">${f.status === 'done' ? '✅' : f.status === 'error' ? '❌' : '⏳'}</div>
+      <div class="file-actions">
+        ${f.status === 'done' ? `<button class="icon-btn" title="ดาวน์โหลด" onclick="downloadFile(${i})">⬇️</button>` : `<button class="icon-btn" title="แปลง" onclick="convertSingle(${i})">⚡</button>`}
+        <button class="icon-btn" title="ลบ" onclick="removeFile(${i})">✕</button>
+      </div>`;
+    list.appendChild(item);
+  });
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = files.length;
+  document.getElementById('stat-done').textContent = files.filter(f => f.status === 'done').length;
+}
+
+/* ════════════════════════════════════════
+   KML TRANSFORMATION
+════════════════════════════════════════ */
+function cleanKml(kmlText) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(kmlText, 'application/xml');
+
+  // Check parse error
+  const parseErr = doc.querySelector('parsererror');
+  if (parseErr) throw new Error('ไม่สามารถอ่าน KML ได้: ' + parseErr.textContent.slice(0,100));
+
+  // 1) Unwrap <Folder>: move all children of each <Folder> up to its parent, then remove Folder
+  const folders = Array.from(doc.getElementsByTagName('Folder'));
+  for (const folder of folders) {
+    const parent = folder.parentNode;
+    // Move Folder's children (except <name>) before the Folder element
+    // We want to keep the <name> tag content as a comment or just discard it
+    const children = Array.from(folder.childNodes);
+    for (const child of children) {
+      if (child.nodeName === 'name') continue; // skip <name> inside Folder
+      parent.insertBefore(child.cloneNode(true), folder);
+    }
+    parent.removeChild(folder);
+  }
+
+  // 2) Unwrap <MultiGeometry>: replace it with its children geometries
+  //    Each child becomes a sibling. But since a Placemark can only have one geometry,
+  //    we split into multiple Placemarks.
+  const multiGeos = Array.from(doc.getElementsByTagName('MultiGeometry'));
+  for (const mg of multiGeos) {
+    const placemark = mg.parentNode;
+    if (!placemark || placemark.nodeName !== 'Placemark') {
+      // Just unwrap
+      const geoChildren = Array.from(mg.childNodes);
+      for (const gc of geoChildren) placemark.insertBefore(gc.cloneNode(true), mg);
+      mg.parentNode.removeChild(mg);
+      continue;
+    }
+
+    const pmParent = placemark.parentNode;
+    const geometries = Array.from(mg.children);
+
+    // First geometry stays in the original Placemark
+    if (geometries.length > 0) {
+      const first = geometries[0];
+      placemark.replaceChild(first.cloneNode(true), mg);
+
+      // Remaining geometries get cloned Placemarks
+      for (let k = 1; k < geometries.length; k++) {
+        const newPm = placemark.cloneNode(true);
+        // Remove any existing geometry tags from newPm, replace with this geometry
+        const geomTags = ['Polygon','Point','LineString','LinearRing','MultiGeometry'];
+        for (const tag of geomTags) {
+          const existing = newPm.getElementsByTagName(tag);
+          Array.from(existing).forEach(el => el.parentNode && el.parentNode.removeChild(el));
+        }
+        newPm.appendChild(geometries[k].cloneNode(true));
+        pmParent.insertBefore(newPm, placemark.nextSibling);
+      }
+    }
+  }
+
+  // Serialize
+  const serializer = new XMLSerializer();
+  let out = serializer.serializeToString(doc);
+
+  // Clean up namespace artifacts
+  out = out.replace(/ xmlns(:\w+)?="[^"]*"/g, (m) => {
+    // Keep the root kml namespace but clean others
+    return m;
+  });
+
+  // Pretty print
+  out = prettyPrint(out);
+  return out;
+}
+
+function prettyPrint(xml) {
+  let formatted = '';
+  let indent = 0;
+  const tab = '  ';
+  xml = xml.replace(/(>)\s*(<)/g, '$1\n$2');
+  xml.split('\n').forEach(line => {
+    line = line.trim();
+    if (!line) return;
+    if (line.match(/^<\/\w/)) indent--;
+    formatted += tab.repeat(Math.max(0, indent)) + line + '\n';
+    if (line.match(/^<\w[^>]*[^/]>.*$/) && !line.match(/<\//) && !line.match(/^<\?/)) indent++;
+  });
+  return formatted.trim();
+}
+
+/* ════════════════════════════════════════
+   CONVERT
+════════════════════════════════════════ */
+async function convertSingle(i) {
+  const f = files[i];
+  try {
+    f.convertedText = cleanKml(f.kmlText);
+    f.status = 'done';
+    showToast(`✅ แปลง ${f.name} สำเร็จ`, 'success');
+    downloadFile(i);
+  } catch (e) {
+    f.status = 'error';
+    showToast(`❌ ${f.name}: ${e.message}`, 'error');
+  }
+  renderFileList();
+  updateStats();
+}
+
+async function convertAll() {
+  const pending = files.filter(f => f.status === 'pending');
+  if (!pending.length) { showToast('ℹ️ ไม่มีไฟล์ที่ต้องแปลง', 'info'); return; }
+  showToast(`⚡ กำลังแปลง ${pending.length} ไฟล์...`, 'info');
+  for (let i = 0; i < files.length; i++) {
+    if (files[i].status === 'pending') {
+      const f = files[i];
+      try {
+        f.convertedText = cleanKml(f.kmlText);
+        f.status = 'done';
+        downloadFile(i);
+      } catch (e) {
+        f.status = 'error';
+      }
+    }
+  }
+  renderFileList();
+  updateStats();
+  const doneCount = files.filter(f => f.status === 'done').length;
+  showToast(`✅ แปลงเสร็จสิ้น ${doneCount}/${files.length} ไฟล์`, 'success');
+}
+
+async function downloadFile(i) {
+  const f = files[i];
+  if (!f.convertedText) return;
+
+  if (outputDirHandle) {
+    try {
+      const fileHandle = await outputDirHandle.getFileHandle(f.name, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(f.convertedText);
+      await writable.close();
+      return;
+    } catch (e) {
+      showToast('⚠️ บันทึกไม่ได้ ดาวน์โหลดแทน', 'error');
+    }
+  }
+
+  // Fallback ดาวน์โหลดปกติ
+  const blob = new Blob([f.convertedText], { type: 'application/vnd.google-earth.kml+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = f.name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function removeFile(i) {
+  if (activeFileIdx === i) {
+    clearMap();
+    activeFileIdx = null;
+  } else if (activeFileIdx > i) {
+    activeFileIdx--;
+  }
+  files.splice(i, 1);
+  renderFileList();
+  updateStats();
+}
+
+function clearAll() {
+  files = [];
+  activeFileIdx = null;
+  clearMap();
+  renderFileList();
+  updateStats();
+}
+
+/* ════════════════════════════════════════
+   MAP PREVIEW
+════════════════════════════════════════ */
+function previewFile(i) {
+  activeFileIdx = i;
+  renderFileList();
+
+  const f = files[i];
+  document.getElementById('map-file-label').textContent = f.name;
+
+  // Use convertedText if available, else original
+  const kmlSrc = f.convertedText || f.kmlText;
+
+  // Show map
+  document.getElementById('map-placeholder').style.display = 'none';
+  document.getElementById('map').style.display = 'block';
+
+  // Init Leaflet if needed
+  if (!leafletMap) {
+    leafletMap = L.map('map', { zoomControl: true }).setView([13.75, 100.5], 12);
+    L.tileLayer('http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}', {
+      attribution: '&copy; Google Satellite Image',
+      maxZoom: 19
+    }).addTo(leafletMap);
+  }
+
+  // Clear previous layer
+  if (activeLayerGroup) { leafletMap.removeLayer(activeLayerGroup); }
+  activeLayerGroup = L.layerGroup().addTo(leafletMap);
+
+  // Parse KML
+  try {
+    const parser = new DOMParser();
+    const kmlDoc = parser.parseFromString(kmlSrc, 'application/xml');
+    const features = parseKmlToLeaflet(kmlDoc);
+
+    if (!features.length) {
+      showToast('⚠️ ไม่พบพิกัดในไฟล์นี้', 'error');
+      return;
+    }
+
+    const bounds = [];
+    features.forEach(lyr => {
+      lyr.addTo(activeLayerGroup);
+      try {
+        const b = lyr.getBounds ? lyr.getBounds() : null;
+        if (b) bounds.push(b);
+      } catch {}
+    });
+
+    if (bounds.length) {
+      let combined = bounds[0];
+      for (let k = 1; k < bounds.length; k++) combined = combined.extend(bounds[k]);
+      leafletMap.fitBounds(combined, { padding: [30, 30] });
+    }
+
+    setTimeout(() => leafletMap.invalidateSize(), 100);
+  } catch(e) {
+    showToast('❌ ไม่สามารถแสดงแผนที่: ' + e.message, 'error');
+  }
+}
+
+function parseKmlToLeaflet(doc) {
+  const layers = [];
+  const style = {
+    color: '#00d084',
+    weight: 2,
+    fillColor: '#00d084',
+    fillOpacity: 0.15,
+    opacity: 0.9
+  };
+
+  // Points
+  const points = doc.getElementsByTagName('Point');
+  for (const pt of points) {
+    const coords = getCoordinates(pt);
+    if (coords.length) {
+      const [lng, lat] = coords[0];
+      layers.push(L.circleMarker([lat, lng], { ...style, radius: 6, fillOpacity: 0.8 }));
+    }
+  }
+
+  // LineStrings
+  const lines = doc.getElementsByTagName('LineString');
+  for (const ls of lines) {
+    const coords = getCoordinates(ls);
+    if (coords.length > 1) {
+      layers.push(L.polyline(coords.map(([lng,lat]) => [lat,lng]), style));
+    }
+  }
+
+  // Polygons
+  const polys = doc.getElementsByTagName('Polygon');
+  for (const poly of polys) {
+    const outer = poly.getElementsByTagName('outerBoundaryIs')[0];
+    if (!outer) continue;
+    const coords = getCoordinates(outer);
+    if (coords.length > 2) {
+      layers.push(L.polygon(coords.map(([lng,lat]) => [lat,lng]), style));
+    }
+  }
+
+  return layers;
+}
+
+function getCoordinates(el) {
+  const coordEl = el.getElementsByTagName('coordinates')[0];
+  if (!coordEl) return [];
+  return coordEl.textContent.trim().split(/\s+/).map(c => {
+    const parts = c.split(',');
+    return [parseFloat(parts[0]), parseFloat(parts[1])];
+  }).filter(([lng, lat]) => !isNaN(lng) && !isNaN(lat));
+}
+
+function clearMap() {
+  document.getElementById('map-placeholder').style.display = 'flex';
+  document.getElementById('map').style.display = 'none';
+  document.getElementById('map-file-label').textContent = '— เลือกไฟล์เพื่อดูแผนที่ —';
+  if (activeLayerGroup && leafletMap) { leafletMap.removeLayer(activeLayerGroup); activeLayerGroup = null; }
+}
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(20px)';
+    toast.style.transition = 'all 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+</script>
+</body>
+</html>
